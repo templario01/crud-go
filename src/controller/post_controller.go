@@ -51,3 +51,38 @@ func (ph *PostController) CreatePost(c *gin.Context) {
 	}
 	c.Status(http.StatusCreated)
 }
+
+func (ph *PostController) DeletePost(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID format"})
+		return
+	}
+
+	deleteError := ph.PostUsecase.DeletePost(id)
+	if deleteError != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": deleteError.Error()})
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+func (ph *PostController) UpdatePost(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID format"})
+		return
+	}
+	var request entity.CreatePostRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid Body request"})
+		return
+	}
+
+	post, updateError := ph.PostUsecase.UpdatePost(id, &request)
+	if updateError != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": updateError.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, post)
+}

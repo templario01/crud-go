@@ -7,31 +7,23 @@ import (
 	"github.com/google/uuid"
 )
 
-/*
-* "PostUseCase" va a trabajar con esta interfaz -> "PostRepository".
- */
 type PostRepository interface {
-	GetAll() ([]entity.Post, error)
-	GetById(id uuid.UUID) (entity.Post, error)
-	AddPost(post *entity.CreatePostRequest)
+	FindAll() ([]entity.Post, error)
+	Find(id uuid.UUID) (entity.Post, error)
+	Create(post *entity.CreatePostRequest)
+	Delete(id uuid.UUID) error
+	Update(id uuid.UUID, post *entity.CreatePostRequest) (entity.Post, error)
 }
 
-/*
-  - Pero se va a crear una instancia de "PostRepositoryDB", por eso "PostRepositoryDB" debe tener todos los metodos de "PostRepository" implementados.
-    postRepo := repository.NewPostRepositoryDB()
-    postUsecase := usecase.NewPostUsecase(postRepo)
-
-*
-*/
 type PostRepositoryDB struct {
 	posts []entity.Post
 }
 
-func (pr *PostRepositoryDB) GetAll() ([]entity.Post, error) {
+func (pr *PostRepositoryDB) FindAll() ([]entity.Post, error) {
 	return pr.posts, nil
 }
 
-func (pr *PostRepositoryDB) GetById(id uuid.UUID) (entity.Post, error) {
+func (pr *PostRepositoryDB) Find(id uuid.UUID) (entity.Post, error) {
 	for _, post := range pr.posts {
 		if post.ID == id {
 			return post, nil
@@ -40,9 +32,41 @@ func (pr *PostRepositoryDB) GetById(id uuid.UUID) (entity.Post, error) {
 	return entity.Post{}, errors.New("post not found")
 }
 
-func (pr *PostRepositoryDB) AddPost(post *entity.CreatePostRequest) {
+func (pr *PostRepositoryDB) Create(post *entity.CreatePostRequest) {
 	newPost := &entity.Post{ID: uuid.New(), Title: post.Title, Content: post.Content}
 	pr.posts = append(pr.posts, *newPost)
+}
+
+func (pr *PostRepositoryDB) Delete(id uuid.UUID) error {
+	currentIndex := -1
+	for i, post := range pr.posts {
+		if post.ID == id {
+			currentIndex = i
+			break
+		}
+	}
+	if currentIndex == -1 {
+		return errors.New("post not found")
+	}
+	pr.posts = append(pr.posts[:currentIndex], pr.posts[currentIndex+1:]...)
+	return nil
+}
+
+func (pr *PostRepositoryDB) Update(id uuid.UUID, post *entity.CreatePostRequest) (entity.Post, error) {
+	currentIndex := -1
+	for i, post := range pr.posts {
+		if post.ID == id {
+			currentIndex = i
+			break
+		}
+	}
+	if currentIndex == -1 {
+		return entity.Post{}, errors.New("post not found")
+	}
+	pr.posts[currentIndex].Title = post.Title
+	pr.posts[currentIndex].Content = post.Content
+
+	return pr.posts[currentIndex], nil
 }
 
 func NewPostRepositoryDB() *PostRepositoryDB {
